@@ -48,7 +48,7 @@ const weatherTemplate = `
    set: {{.Sys.Sunset | formatAsTimeFromInt}}
 `
 
-const headLineTemplate = `{{.Name}} - {{range .Weather}}{{.Main}} ({{.Description}}){{end}})`
+const headLineTemplate = `{{.Name}} - {{range .Weather}}{{.Main}} ({{.Description}}) {{end}}`
 
 const forecastTemplate = `{{$first := true}}{{range .List}}{{if not $first}}--------------------------------{{else}}{{$first = false}}{{end}}
  {{.DtTxt.Time | formatAsTimeFromTime}} - {{range .Weather}}{{.Main}} ({{.Description}}){{end}}
