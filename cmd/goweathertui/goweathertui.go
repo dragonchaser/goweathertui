@@ -23,33 +23,36 @@ var locationZIP int64
 
 var grid = ui.NewGrid()
 var headLine = widgets.NewParagraph()
-var topBox = widgets.NewParagraph()
-var bottomBox = widgets.NewParagraph()
+var leftBox = widgets.NewParagraph()
+var rightBox = widgets.NewParagraph()
 
 var fmap = template.FuncMap{
-	"formatAsTime":     formatAsTime,
-	"formatAsDateTime": formatAsDateTime,
+	"formatAsTimeFromInt":      formatAsTimeFromInt,
+	"formatAsTimeFromTime":     formatAsTimeFromTime,
+	"formatAsDateTimeFromTime": formatAsDateTimeFromTime,
 }
 
 const weatherTemplate = `
 
-  Cond:{{range .Weather}} {{.Description}} {{end}}
+
    Now: {{.Main.Temp}} °C
  Feels: {{.Main.FeelsLike}} °C
--------------------------
+-----------------
   High: {{.Main.TempMax}} °C
    Low: {{.Main.TempMin}} °C
--------------------------
+-----------------
    Hum: {{.Main.Humidity}} %
  Press: {{.Main.Pressure}} hPa
--------------------------
-  rise: {{.Sys.Sunrise | formatAsTime}}
-   set: {{.Sys.Sunset | formatAsTime}}
+-----------------
+  rise: {{.Sys.Sunrise | formatAsTimeFromInt}}
+   set: {{.Sys.Sunset | formatAsTimeFromInt}}
 `
-const forecastTemplate = `
-{{range .List}}D: {{.DtTxt.Time | formatAsDateTime}}
-C: {{range .Weather}}{{.Main}} {{.Description}}{{end}}
-T: {{.Main.Temp}} H: {{.Main.TempMax}} L: {{.Main.TempMin}}
+
+const headLineTemplate = `{{.Name}} - {{range .Weather}}{{.Main}} ({{.Description}}){{end}})`
+
+const forecastTemplate = `{{$first := true}}{{range .List}}{{if not $first}}--------------------------------{{else}}{{$first = false}}{{end}}
+ {{.DtTxt.Time | formatAsTimeFromTime}} - {{range .Weather}}{{.Main}} ({{.Description}}){{end}}
+ T:{{.Main.Temp}} F:{{.Main.FeelsLike}} H:{{.Main.TempMax}} L:{{.Main.TempMin}}
 {{end}}
 `
 
@@ -107,23 +110,25 @@ func setupTui() {
 	grid.Set(
 		ui.NewRow(1.0/20, headLine),
 		ui.NewRow(19.0/20,
-			ui.NewCol(1.0/2, topBox),
-			ui.NewCol(1.0/2, bottomBox),
+			ui.NewCol(4.0/11, leftBox),
+			ui.NewCol(7.0/11, rightBox),
 		),
 	)
 
 	headLine.Border = false
 	headLine.TitleStyle = ui.NewStyle(ui.ColorGreen, ui.ColorBlack, ui.ModifierBold)
 
-	topBox.TitleStyle = headLine.TitleStyle
-	topBox.BorderStyle = ui.NewStyle(ui.ColorGreen, ui.ColorBlack)
-	topBox.TextStyle = ui.NewStyle(ui.ColorGreen, ui.ColorBlack)
-	topBox.WrapText = false
+	leftBox.TitleStyle = headLine.TitleStyle
+	leftBox.BorderStyle = ui.NewStyle(ui.ColorGreen, ui.ColorBlack)
+	leftBox.TextStyle = ui.NewStyle(ui.ColorGreen, ui.ColorBlack)
+	leftBox.WrapText = false
+	leftBox.Title = " weather "
 
-	bottomBox.TitleStyle = headLine.TitleStyle
-	bottomBox.BorderStyle = topBox.BorderStyle
-	bottomBox.TextStyle = topBox.TextStyle
-	bottomBox.WrapText = topBox.WrapText
+	rightBox.TitleStyle = headLine.TitleStyle
+	rightBox.BorderStyle = leftBox.BorderStyle
+	rightBox.TextStyle = leftBox.TextStyle
+	rightBox.WrapText = leftBox.WrapText
+	rightBox.Title = " forecast "
 }
 
 func updateTUI() {
@@ -151,8 +156,7 @@ func updateForecast() {
 		log.Fatalln(err)
 	}
 
-	bottomBox.Title = " forecast "
-	bottomBox.Text = b.String()
+	rightBox.Text = b.String()
 }
 
 func updateCurrent() {
@@ -172,18 +176,32 @@ func updateCurrent() {
 		log.Fatalln(err)
 	}
 
-	headLine.Title = fmt.Sprintf(" %s ", w.Name)
+	leftBox.Text = b.String()
 
-	topBox.Title = " weather "
-	topBox.Text = b.String()
+	b.Reset()
+	tmpl, err = template.New("weather").Funcs(fmap).Parse(headLineTemplate)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if err = tmpl.Execute(&b, w); err != nil {
+		log.Fatalln(err)
+	}
+
+	headLine.Title = fmt.Sprintf(" %s ", b.String())
 }
 
-func formatAsTime(t int) string {
+func formatAsTimeFromInt(t int) string {
 	hour, min, _ := time.Unix(int64(t), 0).Clock()
 	return fmt.Sprintf("%0.2d:%0.2d", hour, min)
 }
 
-func formatAsDateTime(t time.Time) string {
+func formatAsTimeFromTime(t time.Time) string {
+	hour, min, _ := t.Clock()
+	return fmt.Sprintf("%0.2d:%0.2d", hour, min)
+}
+
+func formatAsDateTimeFromTime(t time.Time) string {
 	year, month, day := t.Date()
 	hour, min, _ := t.Clock()
 	return fmt.Sprintf("%0.4d/%0.2d/%0.2d %0.2d:%0.2d", year, month, day, hour, min)
