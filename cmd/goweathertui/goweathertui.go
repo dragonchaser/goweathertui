@@ -144,7 +144,11 @@ func updateForecast() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	f.DailyByZip(int(locationZIP), countryCode, 5)
+	err = f.DailyByZip(int(locationZIP), countryCode, 5)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	forecast := f.ForecastWeatherJson.(*owm.Forecast5WeatherData)
 
 	tmpl, err := template.New("weather").Funcs(fmap).Parse(forecastTemplate)
@@ -165,7 +169,10 @@ func updateCurrent() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	w.CurrentByZip(int(locationZIP), countryCode)
+	err = w.CurrentByZip(int(locationZIP), countryCode)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	tmpl, err := template.New("weather").Funcs(fmap).Parse(weatherTemplate)
 	if err != nil {
