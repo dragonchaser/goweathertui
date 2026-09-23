@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"text/template"
@@ -19,7 +18,7 @@ var apiKey = os.Getenv("OWM_API_KEY")
 var locale = os.Getenv("WEATHER_LOCALE")
 var countryCode = os.Getenv("WEATHER_COUNTRY_CODE")
 
-var locationZIP int64
+var locationZIP string
 
 var grid = ui.NewGrid()
 var headLine = widgets.NewParagraph()
@@ -57,9 +56,9 @@ const forecastTemplate = `{{$first := true}}{{range .List}}{{if not $first}}----
 `
 
 func main() {
-	locationZIP, _ = strconv.ParseInt(os.Getenv("WEATHER_LOCATION_ZIP"), 10, 64)
+	locationZIP = os.Getenv("WEATHER_LOCATION_ZIP")
 
-	if locationZIP == 0 {
+	if locationZIP == "" {
 		log.Fatal("WEATHER_LOCATION_ZIP not set")
 		os.Exit(1)
 	}
@@ -144,7 +143,7 @@ func updateForecast() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = f.DailyByZip(int(locationZIP), countryCode, 5)
+	err = f.DailyByZipcode(locationZIP, countryCode, 5)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -169,7 +168,7 @@ func updateCurrent() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = w.CurrentByZip(int(locationZIP), countryCode)
+	err = w.CurrentByZipcode(locationZIP, countryCode)
 	if err != nil {
 		log.Fatalln(err)
 	}
